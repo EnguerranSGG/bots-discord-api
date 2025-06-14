@@ -53,7 +53,11 @@ export class ChannelsController {
   @ApiParam({ name: 'uuid', description: 'UUID du channel' })
   @ApiResponse({ status: 200, description: 'Le channel a été supprimé.' })
   @ApiResponse({ status: 404, description: 'Channel non trouvé' })
-  remove(@Param('uuid') uuid: string) {
-    return this.channelService.remove(uuid);
+  async remove(@Param('uuid') uuid: string) {
+    const channel = await this.channelService.remove(uuid);
+    if (!channel) {
+      throw new NotFoundException(`Channel with UUID "${uuid}" not found`);
+    }
+    return channel;
   }
 } 

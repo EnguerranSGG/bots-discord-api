@@ -47,7 +47,11 @@ export class ChannelsService {
     return this.channelRepository.save(channel);
   }
 
-  remove(uuid: string) {
-    return this.channelRepository.delete({ uuid });
+  async remove(uuid: string) {
+    const channel = await this.channelRepository.findOneBy({ uuid });
+    if (!channel) {
+      return null;
+    }
+    return this.channelRepository.remove(channel);
   }
 } 
