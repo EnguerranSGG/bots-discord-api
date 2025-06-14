@@ -51,7 +51,14 @@ async function bootstrap() {
 
   app.useGlobalInterceptors(new EmptyResponseInterceptor());
   app.useGlobalFilters(new HttpExceptionFilter());
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }));
+  app.useGlobalPipes(new ValidationPipe({ 
+    whitelist: true, 
+    forbidNonWhitelisted: true,
+    transform: true,
+    transformOptions: {
+      enableImplicitConversion: true,
+    }
+  }));
   
   // Configuration pour servir les fichiers statiques
   app.useStaticAssets({
