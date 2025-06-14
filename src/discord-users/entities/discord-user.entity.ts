@@ -2,7 +2,6 @@ import { Entity, Column, PrimaryColumn, CreateDateColumn, UpdateDateColumn, OneT
 import { ApiProperty } from '@nestjs/swagger';
 
 import { Member } from '../../members/entities/member.entity';
-import { DashboardAccount } from '../../dashboard-accounts/entities/dashboard-account.entity';
 
 @Entity('discord_users')
 export class DiscordUser {
@@ -42,8 +41,5 @@ export class DiscordUser {
 
   @OneToOne(() => Member, member => member.discordUser)
   member: Member;
-
-  @OneToOne(() => DashboardAccount, dashboardAccount => dashboardAccount.discordUser)
-  dashboardAccount: DashboardAccount
 
 } 

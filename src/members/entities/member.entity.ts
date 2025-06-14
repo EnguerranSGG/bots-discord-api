@@ -4,13 +4,9 @@ import { MemberInformation } from '../../members-informations/entities/member-in
 import { ApiProperty } from '@nestjs/swagger';
 import { IdentificationRequest } from '../../identification-requests/entities/identification-request.entity';
 import { DiscordUser } from '../../discord-users/entities/discord-user.entity';
-import { Resource } from '../../resources/entities/resource.entity';
-import { XpTransaction } from '../../xp-transactions/entities/xp-transaction.entity';
 import { Role } from '../../roles/entities/role.entity';
-import { Comment } from '../../comments/entities/comment.entity';
 import { Promotion } from '../../promotions/entities/promotion.entity';
-import { Poll } from '../../polls/entities/poll.entity';
-import { Answer } from '../../answers/entities/answer.entity';
+
 
 
 @Entity('members')
@@ -100,33 +96,12 @@ export class Member {
   identificationRequest: IdentificationRequest;
 
   @ApiProperty({
-    description: 'Les ressources créées par ce membre',
-    type: () => [Resource]
-  })
-  @OneToMany(() => Resource, resource => resource.creator)
-  resources: Resource[];
-
-  @ApiProperty({
-    description: 'Historique des transactions XP du membre',
-    type: () => [XpTransaction]
-  })
-  @OneToMany(() => XpTransaction, transaction => transaction.member)
-  xpTransactions: XpTransaction[];
-
-  @ApiProperty({
     description: 'Rôles du membre',
     type: () => [Role]
   })
   @ManyToMany(() => Role, (role) => role.members)
   @JoinTable()
   roles: Role[];
-
-  @ApiProperty({
-    description: 'Les commentaires du membre',
-    type: () => [Comment]
-  })
-  @OneToMany(() => Comment, comment => comment.member)
-  comments: Comment[];
 
   @ApiProperty({
     description: 'Promotions suivies par le membre',
@@ -141,11 +116,5 @@ export class Member {
   })
   @ManyToMany(() => Promotion, promotion => promotion.managers)
   managedPromotions: Promotion[];
-
-  @OneToMany(()=>Poll, poll => poll.author)
-  polls: Poll[];
-
-  @ManyToMany(() => Answer, (answer) => answer.members)
-  answers: Answer[];
 
 }

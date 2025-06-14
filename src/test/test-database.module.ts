@@ -11,17 +11,8 @@ import { MemberInformation } from '../members-informations/entities/member-infor
 import { Promotion } from '../promotions/entities/promotion.entity';
 import { Campus } from '../campuses/entities/campus.entity';
 import { GuildTemplate } from '../guilds-templates/entities/guild-template.entity';
-import { Poll } from '../polls/entities/poll.entity';
-import { Question } from '../questions/entities/question.entity';
-import { Answer } from '../answers/entities/answer.entity';
-import { DashboardAccount } from '../dashboard-accounts/entities/dashboard-account.entity';
 import { DiscordUser } from '../discord-users/entities/discord-user.entity';
 import { IdentificationRequest } from '../identification-requests/entities/identification-request.entity';
-import { Resource } from '../resources/entities/resource.entity';
-import { XpTransaction } from '../xp-transactions/entities/xp-transaction.entity';
-import { Comment } from '../comments/entities/comment.entity';
-import { Vote } from '../votes/entities/vote.entity';
-import { Report } from '../reports/entities/report.entity';
 
 @Module({
   imports: [
@@ -46,17 +37,8 @@ import { Report } from '../reports/entities/report.entity';
           Promotion,
           Campus,
           GuildTemplate,
-          Poll,
-          Question,
-          Answer,
-          DashboardAccount,
           DiscordUser,
           IdentificationRequest,
-          Resource,
-          XpTransaction,
-          Comment,
-          Vote,
-          Report
         ],
         synchronize: true,
       }),
