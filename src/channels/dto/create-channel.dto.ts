@@ -1,5 +1,6 @@
 import { IsString, IsInt, IsEnum, MaxLength, Min, Length } from 'class-validator';
 import { ApiProperty, PickType } from '@nestjs/swagger';
+import { Transform, Type, Expose } from 'class-transformer';
 import { PickableDiscordUUIDFields } from 'src/utils/pickable-discord-uuid-fields';
 
 enum ChannelType {
@@ -18,6 +19,8 @@ export class CreateChannelDto extends PickType(PickableDiscordUUIDFields, [
   })
   @IsString()
   @Length(17, 19)
+  @Expose()
+  @Transform(({ value }) => value?.toString().trim())
   uuid: string;
 
   @ApiProperty({
@@ -27,6 +30,8 @@ export class CreateChannelDto extends PickType(PickableDiscordUUIDFields, [
   })
   @IsString()
   @MaxLength(100)
+  @Expose()
+  @Transform(({ value }) => value?.toString().trim().toLowerCase())
   name: string;
 
   @ApiProperty({
@@ -36,6 +41,8 @@ export class CreateChannelDto extends PickType(PickableDiscordUUIDFields, [
   })
   @IsString()
   @IsEnum(ChannelType)
+  @Expose()
+  @Transform(({ value }) => value?.toString().toLowerCase())
   type: string;
 
   @ApiProperty({
@@ -45,8 +52,17 @@ export class CreateChannelDto extends PickType(PickableDiscordUUIDFields, [
   })
   @IsInt()
   @Min(0)
+  @Expose()
+  @Type(() => Number)
+  @Transform(({ value }) => {
+    const num = parseInt(value);
+    return isNaN(num) ? 0 : Math.max(0, num);
+  })
   channelPosition: number;
 
+  @Expose()
   uuidGuild: string;
+  
+  @Expose()
   uuidCategory: string;
 } 
