@@ -1,64 +1,196 @@
 services:
-  app-prod:
-    container_name: bots-api-prod
-    image: enguerransgg/api-bots-discord:latest
-    ports:
-      - "8080:3000"
-    env_file: .env.production
-    volumes:
-      - .:/app
-      - /app/node_modules
-      - app_logs:/app/logs
-    depends_on:
-      - db
-    networks:
-      - app-network
-    expose:
-      - "3000"
-
-  db: 
-    image: postgres:17-alpine
-    container_name: bots-api-db
-    env_file: .env.production
-    ports:
-      - "5432:5432"
-    volumes: 
-      - db-data:/var/lib/postgresql/data
-    networks:
-      - app-network
-    expose:
-      - "5432"
-
-  nginx:
-    image: nginx:latest
-    container_name: bots-api-nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-      - /var/www/certbot:/var/www/certbot:ro
-    depends_on:
-      - app-prod
+  # API NestJS (HTTP interne seulement)
+  api:
+    container_name: api-discord-prod
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    image: api-discord:prod
     restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    # Pas d'exposition de port - communication interne uniquement
     networks:
       - app-network
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - api_logs:/app/logs
+      - api_uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
 
+  # Nginx Reverse Proxy
+  nginx:
+    container_name: nginx-discord-prod
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"     # HTTP seulement pour le test
+    volumes:
+      - ./nginx/nginx-dev.conf:/etc/nginx/nginx.conf:ro
+      - nginx_logs:/var/log/nginx
+    networks:
+      - app-network
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+
+  # Certbot pour Let's Encrypt
   certbot:
+    container_name: certbot-discord-prod
     image: certbot/certbot
-    container_name: bots-api-certbot
+    restart: unless-stopped
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt
       - /var/www/certbot:/var/www/certbot
+    # Renouvellement automatique toutes les 12h
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
     depends_on:
       - nginx
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.1'
+        reservations:
+          memory: 32M
+          cpus: '0.05'
 
+  # BOT ONBOARDING
+  bot:
+    container_name: bot-discord-prod
+    build:
+      context: ../bot-discord-onboarding
+      dockerfile: Dockerfile.prod
+    image: bot-discord:prod
+    restart: unless-stopped
+    env_file:
+      - ../bot-discord-onboarding/.env.production
+    environment:
+      - NODE_ENV=production
+      - API_URL=http://api:3000  # Communication interne directe avec l'API
+    networks:
+      - app-network
+    depends_on:
+      api:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    volumes:
+      - bot_logs:/app/logs
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('Bot health check passed')"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+
+  # BDD - PostgreSQL
+  db:
+    container_name: postgres-discord-prod
+    image: postgres:17-alpine
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-bots_api}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - postgres_logs:/var/log/postgresql
+    networks:
+      - app-network
+    ports:
+      # Port exposé seulement pour debug/monitoring externe (évite conflit avec dev)
+      - "127.0.0.1:5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-bots_api}"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+# RÉSEAUX - Isolation et sécurité
 networks:
   app-network:
+    name: discord-bot-prod-network
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
 
+# VOLUMES - Persistance des données
 volumes:
-  db-data:
-  app_logs:
+  # Base de données
+  postgres_data:
+    name: discord-postgres-data-prod
+    driver: local
+  postgres_logs:
+    name: discord-postgres-logs-prod
+    driver: local
+    
+  # API
+  api_logs:
+    name: discord-api-logs-prod
+    driver: local
+  api_uploads:
+    name: discord-api-uploads-prod  
+    driver: local
+    
+  # Bot
+  bot_logs:
+    name: discord-bot-logs-prod
+    driver: local
+    
+  # Nginx
+  nginx_logs:
+    name: discord-nginx-logs-prod
+    driver: local
