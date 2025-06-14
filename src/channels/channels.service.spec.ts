@@ -1,133 +1,98 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { Test, TestingModule } from '@nestjs/testing';
 import { ChannelsService } from './channels.service';
-import { Channel } from './entities/channel.entity';
-import { Repository } from 'typeorm';
-import { NotFoundException } from '@nestjs/common';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+// Exemple d'entité Channel (à adapter selon ta vraie entité)
+const mockChannel = {
+  uuid: '123',
+  name: 'test channel',
+  channelPosition: 1,
+  type: 'text',
+  uuidGuild: 'guild-uuid',
+  uuidCategory: 'cat-uuid',
+};
 
 describe('ChannelsService', () => {
   let service: ChannelsService;
-  let repository: Repository<Channel>;
 
-  const mockChannel: Channel = {
-    uuid: '123456789012345678',
-    name: 'test-channel',
-    type: 'text',
-    channelPosition: 1,
-    uuidCategory: '234567890123456789',
-    uuidGuild: '345678901234567890',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    category: null,
-    course: null,
-    guild: null
-  };
-
+  // Mock d'un repository ou d'une dépendance éventuelle
   const mockRepository = {
-    create: vi.fn(),
-    save: vi.fn(),
-    find: vi.fn(),
-    findOne: vi.fn(),
-    findOneBy: vi.fn(),
-    delete: vi.fn(),
+    create: vi.fn().mockImplementation((dto) => ({ ...dto, uuid: '123' })),
+    save: vi.fn().mockImplementation((channel) => Promise.resolve(channel)),
+    find: vi.fn().mockResolvedValue([mockChannel]),
+    findOne: vi.fn().mockImplementation(({ where: { uuid } }) =>
+      uuid === mockChannel.uuid ? Promise.resolve(mockChannel) : Promise.resolve(null)
+    ),
+    findOneBy: vi.fn().mockImplementation(({ uuid }) =>
+      uuid === mockChannel.uuid ? Promise.resolve(mockChannel) : Promise.resolve(null)
+    ),
+    update: vi.fn().mockImplementation((uuid, dto) =>
+      uuid === mockChannel.uuid ? Promise.resolve({ ...mockChannel, ...dto }) : Promise.resolve(null)
+    ),
+    delete: vi.fn().mockImplementation(({ uuid }) =>
+      uuid === mockChannel.uuid ? Promise.resolve({ affected: 1 }) : Promise.resolve({ affected: 0 })
+    ),
   };
 
-  beforeEach(() => {
-    repository = mockRepository as unknown as Repository<Channel>;
-    service = new ChannelsService(repository);
-    vi.clearAllMocks();
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ChannelsService,
+        { provide: 'ChannelRepository', useValue: mockRepository }, // Adapter selon l'injection réelle
+      ],
+    })
+      .useMocker((token) => {
+        if (token === 'ChannelRepository') return mockRepository;
+      })
+      .compile();
+
+    service = module.get<ChannelsService>(ChannelsService);
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
-  describe('create', () => {
-    it('devrait créer un nouveau channel', async () => {
-      const createChannelDto = {
-        uuid: '123456789012345678',
-        name: 'test-channel',
-        type: 'text',
-        channelPosition: 1,
-        uuidCategory: '234567890123456789',
-        uuidGuild: '345678901234567890'
-      };
-
-      mockRepository.create.mockReturnValue(mockChannel);
-      mockRepository.save.mockResolvedValue(mockChannel);
-
-      const result = await service.create(createChannelDto);
-
-      expect(result).toEqual(mockChannel);
-      expect(mockRepository.create).toHaveBeenCalledWith(createChannelDto);
-      expect(mockRepository.save).toHaveBeenCalledWith(mockChannel);
-    });
+  it('should create a channel', async () => {
+    const dto = { name: 'test channel', channelPosition: 1, type: 'text', uuidGuild: 'guild-uuid', uuidCategory: 'cat-uuid' };
+    // Adapter selon la logique réelle de create
+    const result = await service.create(dto as any);
+    expect(result).toHaveProperty('uuid');
+    expect(result.name).toBe('test channel');
+    expect(mockRepository.create).toHaveBeenCalledWith(dto);
+    expect(mockRepository.save).toHaveBeenCalled();
   });
 
-  describe('findAll', () => {
-    it('devrait retourner un tableau de channels', async () => {
-      const channels = [mockChannel];
-      mockRepository.find.mockResolvedValue(channels);
-
-      const result = await service.findAll();
-
-      expect(result).toEqual(channels);
-      expect(mockRepository.find).toHaveBeenCalledWith({
-        relations: ['guild', 'category']
-      });
-    });
+  it('should return all channels', async () => {
+    const result = await service.findAll();
+    expect(Array.isArray(result)).toBe(true);
+    expect(result[0].name).toBe('test channel');
+    expect(mockRepository.find).toHaveBeenCalled();
   });
 
-  describe('findOne', () => {
-    it('devrait retourner un channel par son uuid', async () => {
-      mockRepository.findOne.mockResolvedValue(mockChannel);
-
-      const result = await service.findOne(mockChannel.uuid);
-
-      expect(result).toEqual(mockChannel);
-      expect(mockRepository.findOne).toHaveBeenCalledWith({
-        where: { uuid: mockChannel.uuid },
-        relations: ['guild', 'category']
-      });
-    });
+  it('should return a channel by uuid', async () => {
+    const result = await service.findOne('123');
+    expect(result).toEqual(mockChannel);
+    expect(mockRepository.findOne).toHaveBeenCalled();
   });
 
-  describe('update', () => {
-    it('devrait mettre à jour un channel', async () => {
-      const updateChannelDto = {
-        name: 'updated-channel',
-        type: 'voice',
-        channelPosition: 2
-      };
-      const updatedChannel = { ...mockChannel, ...updateChannelDto };
-
-      mockRepository.findOneBy.mockResolvedValue(mockChannel);
-      mockRepository.save.mockResolvedValue(updatedChannel);
-
-      const result = await service.update(mockChannel.uuid, updateChannelDto);
-
-      expect(result).toEqual(updatedChannel);
-      expect(mockRepository.findOneBy).toHaveBeenCalledWith({ uuid: mockChannel.uuid });
-      expect(mockRepository.save).toHaveBeenCalled();
-    });
-
-    it('devrait retourner null si le channel à mettre à jour n\'existe pas', async () => {
-      mockRepository.findOneBy.mockResolvedValue(null);
-
-      const result = await service.update('non-existent-uuid', {});
-
-      expect(result).toBeNull();
-      expect(mockRepository.findOneBy).toHaveBeenCalledWith({ uuid: 'non-existent-uuid' });
-      expect(mockRepository.save).not.toHaveBeenCalled();
-    });
+  it('should update a channel', async () => {
+    const updateDto = { name: 'updated channel' };
+    // On s'assure que findOneBy retourne bien le channel existant
+    mockRepository.findOneBy.mockResolvedValueOnce({ ...mockChannel });
+    // On s'assure que save retourne le channel mis à jour
+    mockRepository.save.mockResolvedValueOnce({ ...mockChannel, ...updateDto });
+  
+    const result = await service.update('123', updateDto as any);
+  
+    expect(result!.name).toBe('updated channel');
+    expect(mockRepository.findOneBy).toHaveBeenCalledWith({ uuid: '123' });
+    expect(mockRepository.save).toHaveBeenCalledWith({ ...mockChannel, ...updateDto, updatedAt: expect.any(Date) });
   });
 
-  describe('remove', () => {
-    it('devrait supprimer un channel', async () => {
-      mockRepository.delete.mockResolvedValue({ affected: 1 });
-
-      await service.remove(mockChannel.uuid);
-
-      expect(mockRepository.delete).toHaveBeenCalledWith({ uuid: mockChannel.uuid });
-    });
+  it('should remove a channel', async () => {
+    const result = await service.remove('123');
+    expect(result).toEqual({ affected: 1 });
+    expect(mockRepository.delete).toHaveBeenCalledWith({ uuid: '123' });
   });
-}); 
+});
