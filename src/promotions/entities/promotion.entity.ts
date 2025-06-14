@@ -2,10 +2,10 @@ import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateCol
 import { ApiProperty } from '@nestjs/swagger';
 import { Course } from '../../courses/entities/course.entity';
 import { Guild } from '../../guilds/entities/guild.entity';
-import { Role } from 'src/roles/entities/role.entity';
-import { Campus } from 'src/campuses/entities/campus.entity';
-import { Category } from 'src/categories/entities/category.entity';
-import { Member } from 'src/members/entities/member.entity';
+import { Role } from '../../roles/entities/role.entity';
+import { Campus } from '../../campuses/entities/campus.entity';
+import { Category } from '../../categories/entities/category.entity';
+import { Member } from '../../members/entities/member.entity';
 
 @Entity('Promotions')
 export class Promotion {

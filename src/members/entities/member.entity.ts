@@ -1,16 +1,16 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, JoinTable, OneToOne, ManyToMany, OneToMany } from 'typeorm';
-import { Guild } from '../../guilds/entities/guild.entity'
+import { Guild } from '../../guilds/entities/guild.entity';
 import { MemberInformation } from '../../members-informations/entities/member-information.entity';
 import { ApiProperty } from '@nestjs/swagger';
-import { IdentificationRequest } from 'src/identification-requests/entities/identification-request.entity';
-import { DiscordUser } from 'src/discord-users/entities/discord-user.entity';
+import { IdentificationRequest } from '../../identification-requests/entities/identification-request.entity';
+import { DiscordUser } from '../../discord-users/entities/discord-user.entity';
 import { Resource } from '../../resources/entities/resource.entity';
 import { XpTransaction } from '../../xp-transactions/entities/xp-transaction.entity';
-import { Role } from 'src/roles/entities/role.entity';
+import { Role } from '../../roles/entities/role.entity';
 import { Comment } from '../../comments/entities/comment.entity';
-import { Promotion } from 'src/promotions/entities/promotion.entity';
-import { Poll } from 'src/polls/entities/poll.entity';
-import { Answer } from 'src/answers/entities/answer.entity';
+import { Promotion } from '../../promotions/entities/promotion.entity';
+import { Poll } from '../../polls/entities/poll.entity';
+import { Answer } from '../../answers/entities/answer.entity';
 
 
 @Entity('members')

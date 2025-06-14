@@ -1,7 +1,7 @@
-import { Question } from 'src/questions/entities/question.entity';
+import { Question } from '../../questions/entities/question.entity';
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-import { Member } from 'src/members/entities/member.entity';
+import { Member } from '../../members/entities/member.entity';
 
 @Entity('polls')
 export class Poll {

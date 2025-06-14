@@ -1,6 +1,6 @@
 import { Column, Entity, OneToOne, PrimaryGeneratedColumn, JoinColumn } from "typeorm";
 
-import { Member } from "src/members/entities/member.entity";
+import { Member } from "../../members/entities/member.entity";
 
 @Entity('identification_requests')
 export class IdentificationRequest {

@@ -1,9 +1,8 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToOne, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Guild } from '../../guilds/entities/guild.entity';
-import { Role } from 'src/roles/entities/role.entity';
-import { Promotion } from 'src/promotions/entities/promotion.entity';
-
+import { Role } from '../../roles/entities/role.entity';
+import { Promotion } from '../../promotions/entities/promotion.entity';
 
 @Entity('Campuses')
 export class Campus {

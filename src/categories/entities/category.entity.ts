@@ -3,8 +3,8 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Channel } from '../../channels/entities/channel.entity';
 import { Guild } from '../../guilds/entities/guild.entity';
 import { Course } from '../../courses/entities/course.entity';
-import { Promotion } from 'src/promotions/entities/promotion.entity';
-import { GuildTemplate } from 'src/guilds-templates/entities/guild-template.entity';
+import { Promotion } from '../../promotions/entities/promotion.entity';
+import { GuildTemplate } from '../../guilds-templates/entities/guild-template.entity';
 
 @Entity('categories')
 export class Category {

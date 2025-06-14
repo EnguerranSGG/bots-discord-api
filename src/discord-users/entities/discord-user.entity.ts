@@ -1,8 +1,8 @@
 import { Entity, Column, PrimaryColumn, CreateDateColumn, UpdateDateColumn, OneToOne } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 
-import { Member } from 'src/members/entities/member.entity';
-import { DashboardAccount } from 'src/dashboard-accounts/entities/dashboard-account.entity';
+import { Member } from '../../members/entities/member.entity';
+import { DashboardAccount } from '../../dashboard-accounts/entities/dashboard-account.entity';
 
 @Entity('discord_users')
 export class DiscordUser {

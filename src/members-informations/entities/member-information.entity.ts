@@ -1,7 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToOne, JoinColumn } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-
-import { Member } from 'src/members/entities/member.entity';
+import { Member } from '../../members/entities/member.entity';
 
 @Entity('members_informations')
 export class MemberInformation {

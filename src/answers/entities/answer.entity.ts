@@ -1,7 +1,7 @@
 import { Entity, Column, ManyToOne, PrimaryGeneratedColumn, JoinColumn, ManyToMany} from 'typeorm';
-import { Question } from 'src/questions/entities/question.entity';  
+import { Question } from '../../questions/entities/question.entity';  
 import { ApiProperty } from '@nestjs/swagger';
-import { Member } from 'src/members/entities/member.entity';
+import { Member } from '../../members/entities/member.entity';
 @Entity('answers')
 export class Answer {
   @ApiProperty({
