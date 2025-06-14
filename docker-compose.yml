@@ -15,11 +15,32 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
-      - app_logs:/app/logs
     depends_on:
       - db  
     networks:
       - app-network
+
+  app-test:
+    container_name: bots-api-test
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    environment:
+      - NODE_ENV=test
+      - DB_HOST=db-test
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_DATABASE=test_db
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      db-test:
+        condition: service_healthy
+    networks:
+      - app-network
+    command: npm run test
 
   db: 
     image: postgres:17-alpine
@@ -33,9 +54,29 @@ services:
     networks:
       - app-network
 
+  db-test:
+    image: postgres:17-alpine
+    container_name: bots-api-db-test
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=test_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - db-test-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 networks:
   app-network:
     driver: bridge
+
 volumes:
   db-data:
-  app_logs:
+  db-test-data:

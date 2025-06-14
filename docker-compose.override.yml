@@ -5,11 +5,16 @@ services:
   app-dev:
     environment:
       - NODE_ENV=development
-      - BOT_API_URL=http://bot-discord:3001
     depends_on:
       db:
         condition: service_healthy
     restart: unless-stopped
+    # Commande simplifiée pour créer le répertoire logs et démarrer
+    command: >
+      sh -c "
+        mkdir -p /app/logs &&
+        npm run start:dev
+      "
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"]
       interval: 5s
@@ -25,12 +30,9 @@ services:
       dockerfile: Dockerfile.dev
     env_file:
       - ../bot-discord-onboarding/.env.dev
-    ports:
-      - "3001:3001"  # Port différent pour éviter les conflits
     volumes:
       - ../bot-discord-onboarding:/app
       - /app/node_modules
-      - bot_logs:/app/logs
     depends_on:
       db:
         condition: service_healthy
@@ -43,17 +45,23 @@ services:
       - NODE_ENV=development
       - API_URL=http://app-dev:3000
     # Commande pour démarrer le bot en mode développement
-    command: ["npm", "run", "dev"]
+    command: >
+      sh -c "
+        mkdir -p /app/logs &&
+        npm run dev
+      "
 
   # Service de base de données partagée
   db:
+    env_file:
+      - .env
     environment:
-      - POSTGRES_MULTIPLE_DATABASES=bots_api,bot_discord
-    volumes:
-      - ../bot-discord-onboarding/init-db:/docker-entrypoint-initdb.d/bot-discord
+      - POSTGRES_DB=${POSTGRES_DB:-bots_api}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d bots_api"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-bots_api}"]
       interval: 10s
       timeout: 5s
       retries: 5
