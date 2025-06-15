@@ -4,14 +4,20 @@ services:
     container_name: api-discord-prod
     build:
       context: .
-      dockerfile: Dockerfile.prod
+      dockerfile: api/Dockerfile.prod
     image: api-discord:prod
     restart: unless-stopped
     env_file:
       - .env.production
     environment:
       - NODE_ENV=production
-      - PORT=3000
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - JWT_SECRET=${JWT_SECRET}
+      - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
+      - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET}
+      - DISCORD_REDIRECT_URI=${DISCORD_REDIRECT_URI}
+      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
+      - DISCORD_GUILD_ID=${DISCORD_GUILD_ID}
     command: sh -c "node dist/src/common/services/seed.service.js && node dist/src/main.js"
     networks:
       - app-network
@@ -24,7 +30,7 @@ services:
     logging:
       driver: "json-file"
       options:
-        max-size: "10m"
+        max-size: "15m"
         max-file: "3"
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
@@ -126,10 +132,14 @@ services:
     env_file:
       - .env.production
     environment:
-      - POSTGRES_DB=${POSTGRES_DB:-bots_api}
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_INITDB_ARGS=--encoding=UTF-8
+      POSTGRES_DB: ${POSTGRES_DB:-bots_api}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: --encoding=UTF-8
+      POSTGRES_LOG_STATEMENT: all
+      POSTGRES_LOG_DESTINATION: stderr
+      POSTGRES_LOG_TIMESTAMP: on
+      POSTGRES_LOG_LINE_PREFIX: '%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h'
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./logs/postgres:/var/log/postgresql
@@ -140,7 +150,7 @@ services:
     logging:
       driver: "json-file"
       options:
-        max-size: "10m"
+        max-size: "15m"
         max-file: "3"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-bots_api}"]
@@ -156,34 +166,6 @@ services:
         reservations:
           memory: 256M
           cpus: '0.25'
-
-  # Service de rotation des logs
-  logrotate:
-    image: alpine:latest
-    container_name: logrotate-prod
-    volumes:
-      - ./logs:/logs
-      - ./scripts/logrotate:/etc/logrotate.d:ro
-    command: >
-      sh -c "
-        apk add --no-cache logrotate &&
-        chmod 644 /etc/logrotate.d/* &&
-        logrotate -f /etc/logrotate.d/api-logs &&
-        logrotate -f /etc/logrotate.d/bot-logs &&
-        logrotate -f /etc/logrotate.d/nginx-logs &&
-        logrotate -f /etc/logrotate.d/postgres-logs
-      "
-    restart: unless-stopped
-    networks:
-      - app-network
-    deploy:
-      resources:
-        limits:
-          memory: 64M
-          cpus: '0.1'
-        reservations:
-          memory: 32M
-          cpus: '0.05'
 
 # RÉSEAUX - Isolation et sécurité
 networks:
