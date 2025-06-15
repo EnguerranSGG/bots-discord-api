@@ -18,10 +18,8 @@ export class SeedService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    if (this.configService.get<string>('NODE_ENV') !== 'production') {
-      this.logger.log('🌱 Initialisation du seeding...');
-      await this.seedData();
-    }
+    this.logger.log('🌱 Initialisation du seeding...');
+    await this.seedData();
   }
 
   /**
