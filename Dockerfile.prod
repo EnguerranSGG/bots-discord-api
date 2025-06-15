@@ -28,8 +28,8 @@ LABEL maintainer="enguerran.smaagghe@hotmail.fr"
 LABEL description="Bot Discord API Production Image"
 LABEL version="1.0.0"
 
-# Installer dumb-init et wget pour une gestion propre des signaux et health check
-RUN apk add --no-cache dumb-init wget
+# Installer dumb-init, wget et logrotate
+RUN apk add --no-cache dumb-init wget logrotate
 
 # Créer l'utilisateur non-root pour la sécurité
 RUN addgroup -S -g 1001 app-user && \
@@ -48,10 +48,26 @@ RUN npm ci --only=production --no-audit --no-fund && \
 # Copier les fichiers compilés depuis le stage de build
 COPY --from=builder --chown=app-user:app-user /app/dist ./dist
 
+# Copier la configuration logrotate
+COPY --chown=root:root scripts/logrotate/api-logs /etc/logrotate.d/api-logs
 
 # Créer les dossiers nécessaires et donner les permissions
 RUN mkdir -p /app/logs /app/uploads && \
-    chown -R app-user:app-user /app
+    chown -R app-user:app-user /app && \
+    chmod 644 /etc/logrotate.d/api-logs
+
+# Créer le script de démarrage
+RUN echo '#!/bin/sh\n\
+echo "Waiting for database..."\n\
+while ! pg_isready -h db -p 5432 -U postgres; do\n\
+  sleep 1\n\
+done\n\
+echo "Running database seed..."\n\
+node dist/src/database/seed.js\n\
+echo "Starting API..."\n\
+node dist/src/main.js\n\
+' > /app/start.sh && \
+chmod +x /app/start.sh
 
 # Changer vers l'utilisateur non-root
 USER app-user
@@ -71,5 +87,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 # Point d'entrée avec dumb-init pour une gestion propre des signaux
 ENTRYPOINT ["dumb-init", "--"]
 
-# Commande par défaut - utiliser les fichiers compilés
-CMD ["node", "dist/src/main.js"]
+# Commande par défaut - utiliser le script de démarrage
+CMD ["/app/start.sh"]

@@ -12,15 +12,20 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-    # Pas d'exposition de port - communication interne uniquement
+    command: sh -c "node dist/src/common/services/seed.service.js && node dist/src/main.js"
     networks:
       - app-network
     depends_on:
       db:
         condition: service_healthy
     volumes:
-      - api_logs:/app/logs
-      - api_uploads:/app/uploads
+      - ./logs/api:/app/logs
+      - ./logs/api:/var/log/api
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
       interval: 30s
@@ -42,15 +47,20 @@ services:
     image: nginx:alpine
     restart: unless-stopped
     ports:
-      - "80:80"     # HTTP seulement pour le test
+      - "80:80"
     volumes:
       - ./nginx/nginx-dev.conf:/etc/nginx/nginx.conf:ro
-      - nginx_logs:/var/log/nginx
+      - ./logs/nginx:/var/log/nginx
     networks:
       - app-network
     depends_on:
       api:
         condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD", "nginx", "-t"]
       interval: 30s
@@ -65,27 +75,6 @@ services:
           memory: 64M
           cpus: '0.1'
 
-  # Certbot pour Let's Encrypt
-  certbot:
-    container_name: certbot-discord-prod
-    image: certbot/certbot
-    restart: unless-stopped
-    volumes:
-      - /etc/letsencrypt:/etc/letsencrypt
-      - /var/www/certbot:/var/www/certbot
-    # Renouvellement automatique toutes les 12h
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
-    depends_on:
-      - nginx
-    deploy:
-      resources:
-        limits:
-          memory: 64M
-          cpus: '0.1'
-        reservations:
-          memory: 32M
-          cpus: '0.05'
-
   # BOT ONBOARDING
   bot:
     container_name: bot-discord-prod
@@ -98,7 +87,7 @@ services:
       - ../bot-discord-onboarding/.env.production
     environment:
       - NODE_ENV=production
-      - API_URL=http://api:3000  # Communication interne directe avec l'API
+      - API_URL=http://api:3000
     networks:
       - app-network
     depends_on:
@@ -107,7 +96,13 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - bot_logs:/app/logs
+      - ./logs/bot:/app/logs
+      - ./logs/bot:/var/log/bot
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD", "node", "-e", "console.log('Bot health check passed')"]
       interval: 60s
@@ -137,12 +132,16 @@ services:
       - POSTGRES_INITDB_ARGS=--encoding=UTF-8
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - postgres_logs:/var/log/postgresql
+      - ./logs/postgres:/var/log/postgresql
     networks:
       - app-network
     ports:
-      # Port exposé seulement pour debug/monitoring externe (évite conflit avec dev)
       - "127.0.0.1:5433:5432"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-bots_api}"]
       interval: 15s
@@ -158,6 +157,34 @@ services:
           memory: 256M
           cpus: '0.25'
 
+  # Service de rotation des logs
+  logrotate:
+    image: alpine:latest
+    container_name: logrotate-prod
+    volumes:
+      - ./logs:/logs
+      - ./scripts/logrotate:/etc/logrotate.d:ro
+    command: >
+      sh -c "
+        apk add --no-cache logrotate &&
+        chmod 644 /etc/logrotate.d/* &&
+        logrotate -f /etc/logrotate.d/api-logs &&
+        logrotate -f /etc/logrotate.d/bot-logs &&
+        logrotate -f /etc/logrotate.d/nginx-logs &&
+        logrotate -f /etc/logrotate.d/postgres-logs
+      "
+    restart: unless-stopped
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.1'
+        reservations:
+          memory: 32M
+          cpus: '0.05'
+
 # RÉSEAUX - Isolation et sécurité
 networks:
   app-network:
@@ -172,25 +199,4 @@ volumes:
   # Base de données
   postgres_data:
     name: discord-postgres-data-prod
-    driver: local
-  postgres_logs:
-    name: discord-postgres-logs-prod
-    driver: local
-    
-  # API
-  api_logs:
-    name: discord-api-logs-prod
-    driver: local
-  api_uploads:
-    name: discord-api-uploads-prod  
-    driver: local
-    
-  # Bot
-  bot_logs:
-    name: discord-bot-logs-prod
-    driver: local
-    
-  # Nginx
-  nginx_logs:
-    name: discord-nginx-logs-prod
     driver: local
