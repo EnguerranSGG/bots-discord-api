@@ -30,8 +30,12 @@ export class ChannelsController {
   @ApiParam({ name: 'uuid', description: 'UUID du channel' })
   @ApiResponse({ status: 200, description: 'Le channel a été trouvé.', type: Channel })
   @ApiResponse({ status: 404, description: 'Channel non trouvé' })
-  findOne(@Param('uuid') uuid: string) {
-    return this.channelService.findOne(uuid);
+  async findOne(@Param('uuid') uuid: string) {
+    const channel = await this.channelService.findOne(uuid);
+    if (!channel) {
+      throw new NotFoundException(`Channel with UUID "${uuid}" not found`);
+    }
+    return channel;
   }
 
   @Put(':uuid')

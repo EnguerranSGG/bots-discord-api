@@ -15,48 +15,59 @@ describe('ChannelsController (integration)', () => {
   let createdChannelUuid: string;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [
-        TestDatabaseModule,
-        ChannelsModule,
-        GuildsModule,
-        CategoriesModule,
-      ],
-    }).compile();
+    try {
+      const moduleFixture: TestingModule = await Test.createTestingModule({
+        imports: [
+          TestDatabaseModule,
+          ChannelsModule,
+          GuildsModule,
+          CategoriesModule,
+        ],
+      }).compile();
 
-    app = moduleFixture.createNestApplication();
-    await app.init();
+      app = moduleFixture.createNestApplication();
+      await app.init();
 
-    // Créer un guild et une catégorie pour les tests
-    const guildData = {
-      uuid: '9876543210987654321',
-      name: 'Test Guild',
-      ownerId: '1234567890123456789',
-      memberCount: '100'
-    };
+      // Créer un guild et une catégorie pour les tests
+      const guildData = {
+        uuid: '9876543210987654321',
+        name: 'Test Guild',
+        ownerId: '1234567890123456789',
+        memberCount: '100'
+      };
 
-    const categoryData = {
-      uuid: '5678901234567890123',
-      name: 'Test Category',
-      position: 1,
-      uuidGuild: guildData.uuid
-    };
+      const categoryData = {
+        uuid: '5678901234567890123',
+        name: 'Test Category',
+        position: 1,
+        uuidGuild: guildData.uuid
+      };
 
-    // Créer la guild
-    await request(app.getHttpServer())
-      .post('/guilds')
-      .send(guildData)
-      .expect(201);
+      // Créer la guild
+      await request(app.getHttpServer())
+        .post('/guilds')
+        .send(guildData)
+        .expect(201);
 
-    // Créer la catégorie
-    await request(app.getHttpServer())
-      .post('/categories')
-      .send(categoryData)
-      .expect(201);
+      // Créer la catégorie
+      await request(app.getHttpServer())
+        .post('/categories')
+        .send(categoryData)
+        .expect(201);
+    } catch (error) {
+      console.error('Error in beforeAll:', error);
+      throw error;
+    }
   });
 
   afterAll(async () => {
-    await app.close();
+    try {
+      if (app) {
+        await app.close();
+      }
+    } catch (error) {
+      console.error('Error in afterAll:', error);
+    }
   });
 
   it('POST /channels -> should create a channel', async () => {

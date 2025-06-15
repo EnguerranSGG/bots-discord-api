@@ -23,10 +23,7 @@ async function bootstrap() {
             translateTime: 'SYS:standard',
             ignore: 'pid,hostname',
             messageFormat: '{msg}',
-            levelFirst: true,
-            customPrettifiers: {
-              time: (timestamp: string) => `🕰️  ${timestamp}`,
-            }
+            levelFirst: true
           }
         }
       }
