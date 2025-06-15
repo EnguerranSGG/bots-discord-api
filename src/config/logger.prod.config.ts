@@ -6,13 +6,21 @@ export const loggerConfig: Params = {
       context: 'HTTP',
     }),
     transport: {
-      target: 'pino/file',
+      target: 'pino-pretty',
       options: {
         destination: '/app/logs/app.log',
-        mkdir: true
+        mkdir: true,
+        colorize: true,
+        translateTime: 'SYS:standard',
+        ignore: 'pid,hostname',
+        messageFormat: '{msg}',
+        levelFirst: true,
+        customPrettifiers: {
+          time: (timestamp: string) => `🕰️  ${timestamp}`,
+        }
       }
     },
-    level: 'info',
+    level: 'warn',
     autoLogging: true,
     redact: {
       paths: ['req.headers.authorization', 'req.headers.cookie'],
