@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Override du service API existant pour le développement
   app-dev:
