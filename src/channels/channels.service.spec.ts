@@ -127,11 +127,17 @@ describe('ChannelsService', () => {
   });
 
   it('should return null when updating non-existent channel', async () => {
+    // Réinitialiser les mocks avant le test
+    mockRepository.findOneBy.mockReset();
+    mockRepository.save.mockReset();
+    
+    // Configurer le mock pour retourner null
     mockRepository.findOneBy.mockResolvedValueOnce(null);
     
     const result = await service.update('non-existent', { name: 'updated' });
     
     expect(result).toBeNull();
+    expect(mockRepository.findOneBy).toHaveBeenCalledWith({ uuid: 'non-existent' });
     expect(mockRepository.save).not.toHaveBeenCalled();
   });
 
