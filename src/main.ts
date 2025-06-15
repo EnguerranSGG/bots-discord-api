@@ -8,13 +8,32 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ValidationPipe } from '@nestjs/common';
 import { join } from 'path';
 import helmet from '@fastify/helmet';
+import { Logger } from 'nestjs-pino';
 
 dotenv.config();
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter(),
+    new FastifyAdapter({
+      logger: {
+        transport: {
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+            translateTime: 'SYS:standard',
+            ignore: 'pid,hostname',
+            messageFormat: '{msg}',
+            levelFirst: true,
+            customPrettifiers: {
+              time: (timestamp: string) => `🕰️  ${timestamp}`,
+            }
+          }
+        }
+      }
+    }),
   );
+
+  app.useLogger(app.get(Logger));
 
   await app.register(helmet, {
     contentSecurityPolicy: {
