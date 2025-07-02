@@ -68,6 +68,7 @@ describe('ChannelsService', () => {
   });
 
   it('should create a channel', async () => {
+    // Arrange
     const dto: CreateChannelDto = {
       uuid: '1234567890123456789',
       name: 'test channel',
@@ -76,7 +77,11 @@ describe('ChannelsService', () => {
       uuidGuild: '9876543210987654321',
       uuidCategory: '5678901234567890123'
     };
+
+    // Act
     const result = await service.create(dto);
+
+    // Assert
     expect(result).toHaveProperty('uuid');
     expect(result.name).toBe('test channel');
     expect(mockRepository.create).toHaveBeenCalledWith(dto);
