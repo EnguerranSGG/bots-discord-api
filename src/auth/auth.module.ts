@@ -9,7 +9,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 // Import des guards de sécurité
 import { GlobalAuthGuard } from './guards/global-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { RolesGuard } from './guards/roles.guard';
+import { RolesGuard } from './guards/roles-guard';
 
 @Module({
   imports: [
